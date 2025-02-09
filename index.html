@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Concentration Calculator with PubChem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            max-width: 350px;
+            margin: auto;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #result {
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .loading {
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Live Concentration Calculator</h2>
+
+        <label>Compound Name (Optional):</label>
+        <input type="text" id="compoundName" placeholder="Enter compound name, formula or CAS# and press Enter">
+        <p id="loading" class="loading"></p>
+
+        <label>Molecular Mass (g/mol):</label>
+        <input type="number" id="molecularMass" step="any" placeholder="Enter or leave blank">
+
+        <label>Starting Mass of Compound (g):</label>
+        <input type="number" id="startingMass" step="any" placeholder="Enter or leave blank">
+
+        <label>Desired Concentration (M):</label>
+        <input type="number" id="desiredConcentration" step="any" placeholder="Enter or leave blank">
+
+        <label>Desired Volume (L):</label>
+        <input type="number" id="desiredVolume" step="any" placeholder="Enter or leave blank">
+
+        <p id="result"></p>
+    </div>
+
+    <script>
+        async function fetchMolecularMass(compound) {
+            if (!compound) return;
+
+            const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(compound)}/property/MolecularWeight/JSON`;
+            document.getElementById("loading").innerText = "Fetching molecular mass...";
+            document.getElementById("molecularMass").disabled = true; // Disable input immediately
+
+            try {
+                let response = await fetch(url);
+                if (!response.ok) throw new Error("Compound not found");
+
+                let data = await response.json();
+                let molecularMass = parseFloat(data.PropertyTable.Properties[0].MolecularWeight);
+
+                document.getElementById("molecularMass").value = molecularMass;
+                document.getElementById("loading").innerText = "";
+            } catch (error) {
+                document.getElementById("loading").innerText = "Compound not found, check spelling or provide chemical molecular mass below.";
+                document.getElementById("molecularMass").disabled = false; // Re-enable if not found
+            }
+
+            calculate();
+        }
+
+        function calculate() {
+            let molecularMass = parseFloat(document.getElementById("molecularMass").value);
+            let startingMass = parseFloat(document.getElementById("startingMass").value);
+            let desiredConcentration = parseFloat(document.getElementById("desiredConcentration").value);
+            let desiredVolume = parseFloat(document.getElementById("desiredVolume").value);
+
+            let values = [molecularMass, startingMass, desiredConcentration, desiredVolume];
+            let missingCount = values.filter(v => isNaN(v)).length;
+
+            if (missingCount !== 1) {
+                document.getElementById("result").innerText = "Enter exactly three values to calculate the fourth.";
+                return;
+            }
+
+            let resultText = "";
+
+            if (isNaN(startingMass)) {
+                startingMass = desiredConcentration * desiredVolume * molecularMass;
+                resultText = `Required mass: ${startingMass.toFixed(4)} g`;
+            } else if (isNaN(desiredConcentration)) {
+                desiredConcentration = startingMass / (desiredVolume * molecularMass);
+                resultText = `Required concentration: ${desiredConcentration.toFixed(4)} M`;
+            } else if (isNaN(desiredVolume)) {
+                desiredVolume = startingMass / (desiredConcentration * molecularMass);
+                resultText = `Required volume: ${desiredVolume.toFixed(4)} L`;
+            } else if (isNaN(molecularMass)) {
+                molecularMass = startingMass / (desiredConcentration * desiredVolume);
+                resultText = `Required molecular mass: ${molecularMass.toFixed(4)} g/mol`;
+            }
+
+            document.getElementById("result").innerText = resultText;
+        }
+
+        // Add event listeners to trigger calculation when any input changes
+        document.querySelectorAll("input").forEach(input => {
+            input.addEventListener("input", calculate);
+        });
+
+        // Handle compound name input (only trigger search on Enter)
+        document.getElementById("compoundName").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                let compoundName = this.value.trim();
+                if (compoundName.length > 0) {
+                    fetchMolecularMass(compoundName);
+                    document.getElementById("loading").innerText = "Fetching Result"; // Remove prompt after Enter is pressed
+                }
+            }
+        });
+
+        // Show prompt if user types but doesn't press Enter
+        document.getElementById("compoundName").addEventListener("input", function () {
+            if (this.value.trim().length > 0) {
+                document.getElementById("loading").innerText = "Press Enter to search for molecular mass.";
+            } else {
+                document.getElementById("loading").innerText = "Searching for compound...";
+                document.getElementById("molecularMass").disabled = false; // Re-enable if cleared
+            }
+        });
+
+    </script>
+
+</body>
+</html>
