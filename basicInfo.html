@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Browser Information</title>
+  <title>InfoSample</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -19,72 +19,134 @@
   </style>
 </head>
 <body>
-  <h1>Browser Information</h1>
+  <h1>SysInfo</h1>
   <div id="info">
     <p>Loading information...</p>
   </div>
 
   <script>
-    async function getAllBrowserInfo() {
+    async function getUltimateBrowserInfo() {
       const info = {};
 
-      // Navigator information
-      info["Browser User-Agent"] = navigator.userAgent;
+      // Basic Browser Info
+      info["User-Agent"] = navigator.userAgent;
       info["Browser Name"] = navigator.appName;
       info["Browser Version"] = navigator.appVersion;
+      info["Browser Engine"] = navigator.product;
       info["Platform (OS)"] = navigator.platform;
-      info["Preferred Language"] = navigator.language;
       info["Languages"] = navigator.languages.join(", ");
       info["Cookies Enabled"] = navigator.cookieEnabled ? "Yes" : "No";
       info["Online Status"] = navigator.onLine ? "Online" : "Offline";
       info["Do Not Track"] = navigator.doNotTrack === "1" ? "Enabled" : "Disabled";
+      info["Touch Points Supported"] = navigator.maxTouchPoints || "No touch support";
 
-      // Screen information
-      info["Screen Resolution"] = `${window.screen.width} x ${window.screen.height}`;
-      info["Available Screen Size"] = `${window.screen.availWidth} x ${window.screen.availHeight}`;
-      info["Color Depth"] = `${window.screen.colorDepth} bits`;
-      info["Pixel Depth"] = `${window.screen.pixelDepth} bits`;
+      // Screen Info
+      info["Screen Resolution"] = `${screen.width} x ${screen.height}`;
+      info["Available Screen Size"] = `${screen.availWidth} x ${screen.availHeight}`;
+      info["Color Depth"] = `${screen.colorDepth} bits`;
+      info["Pixel Depth"] = `${screen.pixelDepth} bits`;
 
-      // Window information
+      // Window Info
       info["Window Inner Size"] = `${window.innerWidth} x ${window.innerHeight}`;
       info["Window Outer Size"] = `${window.outerWidth} x ${window.outerHeight}`;
       info["Device Pixel Ratio"] = window.devicePixelRatio;
 
-      // Timezone
+      // Locale and Timezone
       info["Timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      info["Locale"] = Intl.DateTimeFormat().resolvedOptions().locale;
 
-      // Connection information (if available)
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      if (connection) {
-        info["Connection Type"] = connection.effectiveType || "Unknown";
-        info["Downlink"] = connection.downlink ? `${connection.downlink} Mbps` : "Unknown";
-        info["Round Trip Time"] = connection.rtt ? `${connection.rtt} ms` : "Unknown";
-        info["Save Data Mode"] = connection.saveData ? "Enabled" : "Disabled";
-      }
+      // Hardware Info
+      info["CPU Cores"] = navigator.hardwareConcurrency || "Unknown";
+      info["Device Memory (Approximate)"] = navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Not available";
 
-      // Battery information (if available)
+      // Battery Info
       if (navigator.getBattery) {
         const battery = await navigator.getBattery();
         info["Battery Level"] = `${(battery.level * 100).toFixed(0)}%`;
-        info["Battery Charging"] = battery.charging ? "Yes" : "No";
-        info["Battery Charging Time"] = battery.chargingTime ? `${battery.chargingTime} seconds` : "Unknown";
-        info["Battery Discharging Time"] = battery.dischargingTime ? `${battery.dischargingTime} seconds` : "Unknown";
+        info["Charging Status"] = battery.charging ? "Yes" : "No";
+        info["Charging Time"] = battery.chargingTime > 0 ? `${battery.chargingTime} seconds` : "Unknown";
+        info["Discharging Time"] = battery.dischargingTime > 0 ? `${battery.dischargingTime} seconds` : "Unknown";
       } else {
         info["Battery Info"] = "Not available";
       }
 
-      // Clipboard support
-      info["Clipboard Access Supported"] = navigator.clipboard ? "Yes" : "No";
+      // Network Info
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (connection) {
+        info["Network Type"] = connection.effectiveType || "Unknown";
+        info["Downlink Speed"] = connection.downlink ? `${connection.downlink} Mbps` : "Unknown";
+        info["Round Trip Time"] = connection.rtt ? `${connection.rtt} ms` : "Unknown";
+        info["Save Data Mode"] = connection.saveData ? "Enabled" : "Disabled";
+      } else {
+        info["Network Info"] = "Not available";
+      }
 
-      // Geolocation support
-      info["Geolocation Supported"] = navigator.geolocation ? "Yes" : "No";
+      // GPU Info using WebGL
+      try {
+        const canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+        info["GPU Vendor"] = debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : "Unknown";
+        info["GPU Renderer"] = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Unknown";
+      } catch (e) {
+        info["GPU Info"] = "Unavailable";
+      }
+
+      // Permissions API
+      if (navigator.permissions) {
+        const permissions = ["geolocation", "notifications", "camera", "microphone", "clipboard-read"];
+        for (const permission of permissions) {
+          try {
+            const status = await navigator.permissions.query({ name: permission });
+            info[`Permission: ${permission}`] = status.state || "Unknown";
+          } catch (e) {
+            info[`Permission: ${permission}`] = "Not supported or denied";
+          }
+        }
+      } else {
+        info["Permissions"] = "Not available";
+      }
+
+      // Geolocation
+      if (navigator.geolocation) {
+        info["Geolocation"] = "Available (requires user permission)";
+      } else {
+        info["Geolocation"] = "Not supported";
+      }
+
+      // Media Devices Info
+      if (navigator.mediaDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        info["Media Devices"] = devices.map(device => ({
+          Kind: device.kind,
+          Label: device.label || "Unknown (requires permission)",
+          ID: device.deviceId
+        }));
+      } else {
+        info["Media Devices"] = "Not available";
+      }
+
+      // External IP and ISP Info
+      try {
+        const response = await fetch("https://api.ipify.org?format=json");
+        const data = await response.json();
+        info["External IP"] = data.ip;
+        const ispResponse = await fetch(`https://ipapi.co/${data.ip}/json/`);
+        const ispData = await ispResponse.json();
+        info["ISP"] = ispData.org || "Unknown";
+        info["City"] = ispData.city || "Unknown";
+        info["Region"] = ispData.region || "Unknown";
+        info["Country"] = ispData.country_name || "Unknown";
+      } catch (e) {
+        info["External IP and ISP"] = "Unable to fetch";
+      }
 
       return info;
     }
 
-    // Display all information on the page
+    // Render the information on the page
     (async () => {
-      const info = await getAllBrowserInfo();
+      const info = await getUltimateBrowserInfo();
       const infoContainer = document.getElementById("info");
       infoContainer.innerHTML = "<pre>" + JSON.stringify(info, null, 2) + "</pre>";
     })();
