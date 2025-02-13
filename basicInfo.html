@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Information</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 20px;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Browser Information</h1>
+  <div id="info">
+    <p>Loading information...</p>
+  </div>
+
+  <script>
+    async function getAllBrowserInfo() {
+      const info = {};
+
+      // Navigator information
+      info["Browser User-Agent"] = navigator.userAgent;
+      info["Browser Name"] = navigator.appName;
+      info["Browser Version"] = navigator.appVersion;
+      info["Platform (OS)"] = navigator.platform;
+      info["Preferred Language"] = navigator.language;
+      info["Languages"] = navigator.languages.join(", ");
+      info["Cookies Enabled"] = navigator.cookieEnabled ? "Yes" : "No";
+      info["Online Status"] = navigator.onLine ? "Online" : "Offline";
+      info["Do Not Track"] = navigator.doNotTrack === "1" ? "Enabled" : "Disabled";
+
+      // Screen information
+      info["Screen Resolution"] = `${window.screen.width} x ${window.screen.height}`;
+      info["Available Screen Size"] = `${window.screen.availWidth} x ${window.screen.availHeight}`;
+      info["Color Depth"] = `${window.screen.colorDepth} bits`;
+      info["Pixel Depth"] = `${window.screen.pixelDepth} bits`;
+
+      // Window information
+      info["Window Inner Size"] = `${window.innerWidth} x ${window.innerHeight}`;
+      info["Window Outer Size"] = `${window.outerWidth} x ${window.outerHeight}`;
+      info["Device Pixel Ratio"] = window.devicePixelRatio;
+
+      // Timezone
+      info["Timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      // Connection information (if available)
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (connection) {
+        info["Connection Type"] = connection.effectiveType || "Unknown";
+        info["Downlink"] = connection.downlink ? `${connection.downlink} Mbps` : "Unknown";
+        info["Round Trip Time"] = connection.rtt ? `${connection.rtt} ms` : "Unknown";
+        info["Save Data Mode"] = connection.saveData ? "Enabled" : "Disabled";
+      }
+
+      // Battery information (if available)
+      if (navigator.getBattery) {
+        const battery = await navigator.getBattery();
+        info["Battery Level"] = `${(battery.level * 100).toFixed(0)}%`;
+        info["Battery Charging"] = battery.charging ? "Yes" : "No";
+        info["Battery Charging Time"] = battery.chargingTime ? `${battery.chargingTime} seconds` : "Unknown";
+        info["Battery Discharging Time"] = battery.dischargingTime ? `${battery.dischargingTime} seconds` : "Unknown";
+      } else {
+        info["Battery Info"] = "Not available";
+      }
+
+      // Clipboard support
+      info["Clipboard Access Supported"] = navigator.clipboard ? "Yes" : "No";
+
+      // Geolocation support
+      info["Geolocation Supported"] = navigator.geolocation ? "Yes" : "No";
+
+      return info;
+    }
+
+    // Display all information on the page
+    (async () => {
+      const info = await getAllBrowserInfo();
+      const infoContainer = document.getElementById("info");
+      infoContainer.innerHTML = "<pre>" + JSON.stringify(info, null, 2) + "</pre>";
+    })();
+  </script>
+</body>
+</html>
